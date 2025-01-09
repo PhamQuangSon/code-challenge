@@ -1,137 +1,177 @@
-import React, {
-  useState,
-  useEffect,
-  ChangeEvent,
-  FormEvent,
-  useCallback,
-  memo,
-  useMemo,
-} from "react";
-import Select from "react-select";
-import { CURRENCY } from "@/constants/currency";
+"use client";
+
+import { useState } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ArrowDownUp } from "lucide-react";
+import { useWalletBalances } from "@/hooks/useWalletBalances";
 import WalletRow from "@/components/WalletRow";
+import { CURRENCY } from "@/constants/currency";
 
-interface Currency {
-  currency: string;
-  price: number;
-  date: string | Date;
-}
+export default function CurrencySwapForm() {
+  const { balances, updateBalance } = useWalletBalances();
+  const [amount, setAmount] = useState("");
+  const [fromCurrency, setFromCurrency] = useState(CURRENCY[0].currency);
+  const [toCurrency, setToCurrency] = useState(CURRENCY[1].currency);
+  const [isLoading, setIsLoading] = useState(false);
 
-const CurrencySwapForm: React.FC = () => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [selectedInputCurrency, setSelectedInputCurrency] = useState<Currency>(
-    CURRENCY[0]
-  );
-  const [selectedOutputCurrency, setSelectedOutputCurrency] =
-    useState<Currency>(CURRENCY[1]);
+  const fromCurrencyData = CURRENCY.find((c) => c.currency === fromCurrency);
+  const toCurrencyData = CURRENCY.find((c) => c.currency === toCurrency);
+  const fromBalance = balances.find((b) => b.currency === fromCurrency);
+  const toBalance = balances.find((b) => b.currency === toCurrency);
 
-  const handleSubmit = (event: FormEvent) => {};
-  const handleSelectedInputCurrency = useCallback(
-    (currency: Currency) => {
-      setSelectedInputCurrency(currency);
-      if (currency.currency === selectedOutputCurrency.currency) {
-        setSelectedOutputCurrency(
-          CURRENCY.find(
-            (item) => item.currency !== currency.currency
-          ) as Currency
-        );
-      }
-    },
-    [selectedOutputCurrency]
-  );
+  const handleSwap = () => {
+    setFromCurrency(toCurrency);
+    setToCurrency(fromCurrency);
+  };
+
+  const calculateOutputAmount = () => {
+    if (!amount || !fromCurrencyData || !toCurrencyData) return "0";
+    const inputAmount = parseFloat(amount);
+    const rate = toCurrencyData.price / fromCurrencyData.price;
+    return (inputAmount * rate).toFixed(6);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!amount || !fromCurrencyData || !toCurrencyData) return;
+
+    setIsLoading(true);
+    try {
+      const inputAmount = parseFloat(amount);
+      const outputAmount = parseFloat(calculateOutputAmount());
+
+      // Simulate API call
+      // await new Promise(resolve => setTimeout(resolve, 1000))
+
+      updateBalance(fromCurrency, -inputAmount);
+      updateBalance(toCurrency, outputAmount);
+      setAmount("");
+    } catch (error) {
+      console.error("Swap failed:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-lg"
-    >
-      <h5 className="text-2xl font-semibold text-center mb-6">Swap</h5>
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader>
+			<CardTitle>Currency Swap</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Amount to send</label>
+              <div className="space-y-2">
+                <Select value={fromCurrency} onValueChange={setFromCurrency}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCY.map((currency) => (
+                      <SelectItem
+                        key={currency.currency}
+                        value={currency.currency}
+                      >
+                        <WalletRow
+                          balance={{
+                            currency: currency.currency,
+                            amount: fromBalance?.amount || 0,
+                            blockchain: "Default",
+                            formatted: currency.price.toFixed(6),
+                            price: currency.price,
+                            date: new Date().toISOString(),
+                          }}
+                          className={"min-w-80"}
+                        />
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0.00"
+                  min="0"
+                  step="any"
+                />
+              </div>
+            </div>
 
-      <div className="mb-4">
-        <label
-          htmlFor="input-amount"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Amount to send
-        </label>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={handleSwap}
+              className="flex mx-auto"
+            >
+              <ArrowDownUp className="h-4 w-4" />
+            </Button>
 
-        <Select
-          value={selectedInputCurrency}
-          onChange={(event) => handleSelectedInputCurrency(event as Currency)}
-          options={CURRENCY}
-          formatOptionLabel={(option) => {
-            const formattedOption = {
-              ...option,
-              formatted: `${option.currency} - ${option.price}`,
-              icon: "", // Add appropriate icon URL or component
-              amount: option.price,
-              blockchain: "", // Add appropriate blockchain info
-            };
-            return (
-              <WalletRow
-                key={`${option.currency}`}
-                balance={formattedOption}
-                usdValue={0}
-                className="wallet-row"
-              />
-            );
-          }}
-          className="mt-2"
-        />
-      </div>
-
-      <div className="mb-6">
-        <label
-          htmlFor="output-amount"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Amount to receive
-        </label>
-
-        <Select
-          value={selectedOutputCurrency}
-          onChange={(event) => setSelectedOutputCurrency(event as Currency)}
-          options={CURRENCY}
-          formatOptionLabel={(option) => {
-            const formattedOption = {
-              ...option,
-              formatted: `${option.currency} - ${option.price}`,
-              icon: "", // Add appropriate icon URL or component
-              amount: option.price,
-              blockchain: "", // Add appropriate blockchain info
-            };
-            return (
-              <WalletRow
-                key={`${option.currency}`}
-                balance={formattedOption}
-                usdValue={0}
-                className="wallet-row"
-              />
-            );
-          }}
-          className="mt-2"
-        />
-      </div>
-
-      <button
-        type="submit"
-        className="w-full h-11 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
-        disabled={isLoading}
-      >
-        {isLoading ? (
-          <div className="flex justify-center items-center h-full">
-            <img
-              src="/icons/loading.svg"
-              alt="Loading"
-              className="w-full h-full"
-            />
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Amount to receive</label>
+              <div className="space-y-2">
+                <Select value={toCurrency} onValueChange={setToCurrency}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCY.map((currency) => (
+                      <SelectItem
+                        key={currency.currency}
+                        value={currency.currency}
+                      >
+                        <WalletRow
+                          balance={{
+                            currency: currency.currency,
+                            amount: toBalance?.amount || 0,
+                            blockchain: "Default",
+                            formatted: currency.price.toFixed(6),
+                            price: currency.price,
+                            date: new Date().toISOString(),
+                          }}
+                          className={"min-w-80"}
+                        />
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="text"
+                  value={calculateOutputAmount()}
+                  readOnly
+                  className="bg-gray-100 cursor-not-allowed"
+                />
+              </div>
+            </div>
           </div>
-        ) : (
-          "CONFIRM SWAP"
-        )}
-      </button>
-    </form>
-  );
-};
 
-export default CurrencySwapForm;
+          <Button
+            type="submit"
+            className="w-full hover:bg-blue-600 active:bg-blue-700"
+            disabled={
+              isLoading ||
+              !amount ||
+              parseFloat(amount) <= 0 ||
+              !fromBalance ||
+              parseFloat(amount) > fromBalance.amount
+            }
+          >
+            {isLoading ? "Processing..." : "Confirm Swap"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}

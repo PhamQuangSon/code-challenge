@@ -25,12 +25,17 @@ const WalletPage: React.FC<Props> = ({ children, ...rest }) => {
   const formattedBalances: FormattedWalletBalance[] = sortedBalances.map(formatBalance);
 
   const rows = formattedBalances.map((balance: FormattedWalletBalance, index: number) => {
-    const usdValue = (prices[balance.currency] || 0) * balance.amount;
     return (
       <WalletRow
         key={`${balance.currency}-${index}`}
-        balance={balance}
-        usdValue={usdValue}
+        balance={{
+          currency: balance.currency,
+          amount: balance?.amount || 0,
+          blockchain: 'Default',
+          formatted: balance.price.toFixed(6),
+          price: balance.price,
+          date: new Date().toISOString(),
+        }}
         className="wallet-row"
       />
     );

@@ -26,12 +26,11 @@ export interface WalletBalance {
   price: number;
 	date: string | Date;
   amount: number;
-  blockchain: Blockchain;
+  blockchain: Currency;
 }
 
 export interface FormattedWalletBalance extends WalletBalance {
   formatted: string;
-  icon: string;
 }
 
 export interface PriceData {
@@ -40,6 +39,5 @@ export interface PriceData {
 
 export interface WalletRowProps {
   balance: FormattedWalletBalance;
-  usdValue: number;
   className?: string;
 }
