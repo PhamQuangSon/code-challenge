@@ -1,25 +1,30 @@
 import { useState } from "react";
 import type { WalletBalance, FormattedWalletBalance } from "@/types/wallet";
+import { CURRENCY } from "@/constants/currency";
 
 export function useWalletBalances() {
   // Example initial balances
   const [balances, setBalances] = useState<WalletBalance[]>([
-    { currency: "ETH", amount: 1.5, blockchain: "Ethereum", price: 3000, date: new Date() },
-    { currency: "OSMO", amount: 100, blockchain: "Osmosis", price: 5, date: new Date() },
-    { currency: "USDC", amount: 1000, blockchain: "Ethereum", price: 1, date: new Date() },
-    { currency: "USD", amount: 1000, blockchain: "USD", price: 1, date: new Date() },
+    { currency: "ETH", amount: 1.5, blockchain: "Ethereum"},
+    { currency: "OSMO", amount: 100, blockchain: "Osmosis"},
+    { currency: "USDC", amount: 1000, blockchain: "Ethereum"},
+    { currency: "USD", amount: 1000, blockchain: "Default"},
   ]);
 
-
-
   const getFormattedBalances = (): FormattedWalletBalance[] => {
-    return balances.map((balance) => {
+    return balances.map(balance => {
+      const currencyData = CURRENCY.find(c => c.currency === balance.currency)
+      const usdValue = currencyData ? balance.amount * currencyData.price : 0
+      
       return {
         ...balance,
+        usdValue,
         formatted: balance.amount.toFixed(6),
-      };
-    });
-  };
+        price: currencyData ? currencyData.price : 0,
+        date: currencyData ? currencyData.date : new Date().toISOString(),
+      }
+    })
+  }
 
   const updateBalance = (currency: string, amount: number) => {
     setBalances((prev) => {

@@ -1,41 +1,28 @@
-import React from "react";
-import { render, screen } from "@testing-library/react";
-import WalletPage from "@/components/WalletPage";
-import { useWalletBalances, usePrices } from "@/hooks/wallet";
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import WalletPage from './WalletPage';
+import { useWalletBalances } from '@/hooks/useWalletBalances';
 
-// Mock the custom hooks
-jest.mock("@/hooks/wallet", () => ({
-  useWalletBalances: jest.fn(),
-  usePrices: jest.fn(),
-}));
+jest.mock('@/hooks/useWalletBalances');
 
-describe("WalletPage", () => {
-  const mockBalances = [
-    { currency: "ETH", amount: 1.5, blockchain: "Ethereum" },
-    { currency: "OSMO", amount: 100, blockchain: "Osmosis" },
-    { currency: "ARB", amount: 50, blockchain: "Arbitrum" },
-    { currency: "ZIL", amount: 1000, blockchain: "Zilliqa" },
-  ];
-
-  const mockPrices = {
-    ETH: 2000,
-    OSMO: 1,
-    ARB: 1.2,
-    ZIL: 0.05,
-  };
-
+describe("WalletPage Component", () => {
   beforeEach(() => {
-    (useWalletBalances as jest.Mock).mockReturnValue(mockBalances);
-    (usePrices as jest.Mock).mockReturnValue(mockPrices);
+    (useWalletBalances as jest.Mock).mockReturnValue({
+      balances: [
+        { symbol: 'OSMO', amount: 100, usdValue: 100 },
+        { symbol: 'ETH', amount: 1.5, usdValue: 3000 },
+        { symbol: 'ARB', amount: 50, usdValue: 60 },
+        { symbol: 'ZIL', amount: 1000, usdValue: 50 },
+      ],
+    });
   });
 
-  it("renders wallet rows in correct order", () => {
+  it("renders wallet balances correctly", () => {
     render(<WalletPage />);
 
     const walletRows = screen.getAllByTestId("wallet-row");
-    expect(walletRows).toHaveLength(4);
 
-    // Check if the order is correct (Osmosis, Ethereum, Arbitrum, Zilliqa)
+    expect(walletRows).toHaveLength(4);
     expect(walletRows[0]).toHaveTextContent("OSMO");
     expect(walletRows[1]).toHaveTextContent("ETH");
     expect(walletRows[2]).toHaveTextContent("ARB");

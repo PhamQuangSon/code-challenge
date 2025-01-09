@@ -1,41 +1,31 @@
+import { CURRENCY } from "@/constants/currency";
 export enum BlockchainPriority {
   Osmosis = 100,
   Ethereum = 50,
   Arbitrum = 30,
   Zilliqa = 20,
   Neo = 20,
-  Default = -99
-}
-
-export enum CurrencySymbol {
-  ETH = 'Ξ',
-  OSMO = 'Ο',
-  ARB = 'A',
-  ZIL = 'Z',
-  NEO = 'N',
-  DEFAULT = '$'
+  Default = -99,
 }
 
 export type Blockchain = keyof typeof BlockchainPriority;
-export type Currency = keyof typeof CurrencySymbol;
+export type Currency = (typeof CURRENCY)[number]["currency"];
 
 export interface WalletBalance {
   currency: Currency;
   amount: number;
-  blockchain: Blockchain;
+  blockchain: Currency;
 }
 
 export interface FormattedWalletBalance extends WalletBalance {
   formatted: string;
-  symbol: CurrencySymbol;
+	usdValue: number;
+	price: number;
+	date: string | Date;
 }
 
-export interface PriceData {
-  [key in Currency]?: number;
-}
 
 export interface WalletRowProps {
   balance: FormattedWalletBalance;
-  usdValue: number;
   className?: string;
 }
